@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Local IFC Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: sans-serif; overflow: hidden; background: #202020; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+        #controls {
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            background: rgba(0, 0, 0, 0.8); padding: 15px; border-radius: 8px; color: white;
+        }
+        input[type="file"] { margin-top: 10px; color: #ccc; }
+        #loading { display: none; color: #ffeb3b; margin-top: 10px; font-weight: bold; }
+    </style>
+    <!-- Import Three.js and That Open Company libraries via ES Modules -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com",
+          "@thatopen/components": "https://unpkg.com",
+          "@thatopen/fragments": "https://unpkg.com"
+        }
+      }
+    </script>
+</head>
+<body>
+
+    <div id="controls">
+        <h2>IFC Web Viewer</h2>
+        <p>Select a local .ifc file to view in 3D:</p>
+        <input type="file" id="ifc-file" accept=".ifc">
+        <div id="loading">Processing IFC model...</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import * as OBC from '@thatopen/components';
+
+        const container = document.getElementById('canvas-container');
+        const fileInput = document.getElementById('ifc-file');
+        const loadingIndicator = document.getElementById('loading');
+
+        // 1. Initialize the components engine
+        const components = new OBC.Components();
+
+        // 2. Set up the Scene
+        const sceneComponent = new OBC.SimpleScene(components);
+        components.scene = sceneComponent;
+        const scene = sceneComponent.get();
+        scene.background = new THREE.Color(0x202020);
+
+        // 3. Set up the Renderer
+        const rendererComponent = new OBC.SimpleRenderer(components, container);
+        components.renderer = rendererComponent;
+
+        // 4. Set up the Camera & Navigation Controls
+        const cameraComponent = new OBC.SimpleCamera(components);
+        components.camera = cameraComponent;
+
+        // 5. Add basic lighting
+        const lighting = new OBC.SimpleLighting(components);
+
+        // 6. Initialize the Framework and start the render loop
+        components.init();
+        lighting.setup();
+
+        // 7. Set up the IFC Loader using Fragment Manager
+        const fragments = new OBC.FragmentsManager(components);
+        const fragmentIfcLoader = new OBC.IfcLoader(components);
+        
+        // Point to the official WASM files hosted on unpkg for zero-config compilation
+        await fragmentIfcLoader.setup({
+            wasm: {
+                path: "https://unpkg.com",
+                absolute: true
+            }
+        });
+
+        // 8. Handle file uploads locally
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            loadingIndicator.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const buffer = e.target.result;
+                const uint8Array = new Uint8Array(buffer);
+                
+                try {
+                    // Clean up previous models if loaded
+                    fragments.dispose();
+                    
+                    // Load the model
+                    const model = await fragmentIfcLoader.load(uint8Array);
+                    scene.add(model);
+                    
+                    // Fit camera to the loaded model boundaries
+                    cameraComponent.fit(model);
+                } catch (error) {
+                    alert("Error loading IFC file. Ensure it is a valid format.");
+                    console.error(error);
+                } finally {
+                    loadingIndicator.style.display = 'none';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
