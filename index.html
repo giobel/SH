@@ -1,117 +1,372 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Local IFC Viewer</title>
+    <title>IFC Viewer</title>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: sans-serif; overflow: hidden; background: #202020; }
-        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #202020;
+        }
+
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
         #controls {
-            position: absolute; top: 20px; left: 20px; z-index: 10;
-            background: rgba(0, 0, 0, 0.8); padding: 15px; border-radius: 8px; color: white;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.80);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            min-width: 260px;
         }
-        input[type="file"] { margin-top: 10px; color: #ccc; }
-        #loading { display: none; color: #ffeb3b; margin-top: 10px; font-weight: bold; }
+
+        #controls h2 {
+            margin-bottom: 8px;
+        }
+
+        #loading {
+            margin-top: 10px;
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        #error {
+            margin-top: 10px;
+            color: #ff5555;
+            display: none;
+        }
+
+        input[type="file"] {
+            margin-top: 10px;
+            color: #ccc;
+            width: 100%;
+        }
     </style>
-    <!-- Import Three.js and That Open Company libraries via ES Modules -->
+
+    <!-- Import maps -->
     <script type="importmap">
-      {
+    {
         "imports": {
-          "three": "https://unpkg.com",
-          "@thatopen/components": "https://unpkg.com",
-          "@thatopen/fragments": "https://unpkg.com"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.module.js",
+            "@thatopen/components": "https://cdn.jsdelivr.net/npm/@thatopen/components@2.4.0/+esm",
+            "@thatopen/fragments": "https://cdn.jsdelivr.net/npm/@thatopen/fragments@3.1.0/+esm"
         }
-      }
+    }
     </script>
 </head>
+
 <body>
 
-    <div id="controls">
-        <h2>IFC Web Viewer</h2>
-        <p>Select a local .ifc file to view in 3D:</p>
-        <input type="file" id="ifc-file" accept=".ifc">
-        <div id="loading">Processing IFC model...</div>
+<div id="controls">
+    <h2>IFC Viewer</h2>
+
+    <div id="loading">
+        Loading IFC model...
     </div>
 
-    <div id="canvas-container"></div>
+    <input
+        type="file"
+        id="ifc-file"
+        accept=".ifc"
+    >
 
-    <script type="module">
-        import * as THREE from 'three';
-        import * as OBC from '@thatopen/components';
+    <div id="error"></div>
+</div>
 
-        const container = document.getElementById('canvas-container');
-        const fileInput = document.getElementById('ifc-file');
-        const loadingIndicator = document.getElementById('loading');
+<div id="canvas-container"></div>
 
-        // 1. Initialize the components engine
-        const components = new OBC.Components();
+<script type="module">
 
-        // 2. Set up the Scene
-        const sceneComponent = new OBC.SimpleScene(components);
-        components.scene = sceneComponent;
-        const scene = sceneComponent.get();
-        scene.background = new THREE.Color(0x202020);
+    import * as THREE from "three";
+    import * as OBC from "@thatopen/components";
 
-        // 3. Set up the Renderer
-        const rendererComponent = new OBC.SimpleRenderer(components, container);
-        components.renderer = rendererComponent;
+    // ------------------------------------------------------------
+    // CONFIGURATION
+    // ------------------------------------------------------------
 
-        // 4. Set up the Camera & Navigation Controls
-        const cameraComponent = new OBC.SimpleCamera(components);
-        components.camera = cameraComponent;
+    // IFC file stored inside your GitHub repository.
+    //
+    // Example repository structure:
+    //
+    // /
+    // ├── index.html
+    // └── models/
+    //     └── model.ifc
+    //
+    const IFC_URL = "./models/SH-00041-Shed House.ifc";
 
-        // 5. Add basic lighting
-        const lighting = new OBC.SimpleLighting(components);
 
-        // 6. Initialize the Framework and start the render loop
-        components.init();
-        lighting.setup();
+    // ------------------------------------------------------------
+    // HTML ELEMENTS
+    // ------------------------------------------------------------
 
-        // 7. Set up the IFC Loader using Fragment Manager
-        const fragments = new OBC.FragmentsManager(components);
-        const fragmentIfcLoader = new OBC.IfcLoader(components);
-        
-        // Point to the official WASM files hosted on unpkg for zero-config compilation
-        await fragmentIfcLoader.setup({
-            wasm: {
-                path: "https://unpkg.com",
-                absolute: true
+    const container =
+        document.getElementById("canvas-container");
+
+    const fileInput =
+        document.getElementById("ifc-file");
+
+    const loadingIndicator =
+        document.getElementById("loading");
+
+    const errorElement =
+        document.getElementById("error");
+
+
+    // ------------------------------------------------------------
+    // COMPONENTS
+    // ------------------------------------------------------------
+
+    const components = new OBC.Components();
+
+
+    // ------------------------------------------------------------
+    // SCENE
+    // ------------------------------------------------------------
+
+    const sceneComponent =
+        new OBC.SimpleScene(components);
+
+    components.scene = sceneComponent;
+
+    const scene = sceneComponent.get();
+
+    scene.background =
+        new THREE.Color(0x202020);
+
+
+    // ------------------------------------------------------------
+    // RENDERER
+    // ------------------------------------------------------------
+
+    const rendererComponent =
+        new OBC.SimpleRenderer(
+            components,
+            container
+        );
+
+    components.renderer =
+        rendererComponent;
+
+
+    // ------------------------------------------------------------
+    // CAMERA
+    // ------------------------------------------------------------
+
+    const cameraComponent =
+        new OBC.SimpleCamera(components);
+
+    components.camera =
+        cameraComponent;
+
+
+    // ------------------------------------------------------------
+    // LIGHTING
+    // ------------------------------------------------------------
+
+    const lighting =
+        new OBC.SimpleLighting(components);
+
+
+    // ------------------------------------------------------------
+    // INITIALISE
+    // ------------------------------------------------------------
+
+    components.init();
+
+    lighting.setup();
+
+
+    // ------------------------------------------------------------
+    // IFC LOADER
+    // ------------------------------------------------------------
+
+    const fragments =
+        new OBC.FragmentsManager(components);
+
+    const fragmentIfcLoader =
+        new OBC.IfcLoader(components);
+
+
+    // ------------------------------------------------------------
+    // SETUP IFC WASM
+    // ------------------------------------------------------------
+
+    await fragmentIfcLoader.setup({
+        wasm: {
+            path: "https://cdn.jsdelivr.net/npm/web-ifc@0.0.68/",
+            absolute: true
+        }
+    });
+
+
+    // ------------------------------------------------------------
+    // LOAD IFC FROM URL
+    // ------------------------------------------------------------
+
+    async function loadIFCFromURL(url) {
+
+        loadingIndicator.style.display = "block";
+        errorElement.style.display = "none";
+
+        try {
+
+            console.log("Loading IFC:");
+            console.log(url);
+
+            const response =
+                await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${response.statusText}`
+                );
             }
-        });
 
-        // 8. Handle file uploads locally
-        fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
+            const arrayBuffer =
+                await response.arrayBuffer();
 
-            loadingIndicator.style.display = 'block';
+            const uint8Array =
+                new Uint8Array(arrayBuffer);
 
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const buffer = e.target.result;
-                const uint8Array = new Uint8Array(buffer);
-                
-                try {
-                    // Clean up previous models if loaded
-                    fragments.dispose();
-                    
-                    // Load the model
-                    const model = await fragmentIfcLoader.load(uint8Array);
-                    scene.add(model);
-                    
-                    // Fit camera to the loaded model boundaries
-                    cameraComponent.fit(model);
-                } catch (error) {
-                    alert("Error loading IFC file. Ensure it is a valid format.");
-                    console.error(error);
-                } finally {
-                    loadingIndicator.style.display = 'none';
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-    </script>
+
+            // Remove previous model
+            fragments.dispose();
+
+
+            // Load IFC
+            const model =
+                await fragmentIfcLoader.load(
+                    uint8Array
+                );
+
+
+            // Add model to scene
+            scene.add(model);
+
+
+            // Fit camera
+            cameraComponent.fit(model);
+
+
+            console.log(
+                "IFC model loaded successfully."
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                "IFC loading error:",
+                error
+            );
+
+            errorElement.innerText =
+                "Unable to load IFC model: " +
+                error.message;
+
+            errorElement.style.display =
+                "block";
+        }
+
+        finally {
+
+            loadingIndicator.style.display =
+                "none";
+        }
+    }
+
+
+    // ------------------------------------------------------------
+    // LOCAL IFC FILE
+    // ------------------------------------------------------------
+
+    fileInput.addEventListener(
+        "change",
+        async (event) => {
+
+            const file =
+                event.target.files[0];
+
+            if (!file)
+                return;
+
+            loadingIndicator.style.display =
+                "block";
+
+            errorElement.style.display =
+                "none";
+
+            try {
+
+                const buffer =
+                    await file.arrayBuffer();
+
+                const uint8Array =
+                    new Uint8Array(buffer);
+
+
+                fragments.dispose();
+
+
+                const model =
+                    await fragmentIfcLoader.load(
+                        uint8Array
+                    );
+
+
+                scene.add(model);
+
+                cameraComponent.fit(model);
+
+            }
+            catch (error) {
+
+                console.error(error);
+
+                errorElement.innerText =
+                    "Unable to load IFC model: " +
+                    error.message;
+
+                errorElement.style.display =
+                    "block";
+            }
+
+            finally {
+
+                loadingIndicator.style.display =
+                    "none";
+            }
+        }
+    );
+
+
+    // ------------------------------------------------------------
+    // AUTOMATICALLY LOAD REPOSITORY IFC
+    // ------------------------------------------------------------
+
+    await loadIFCFromURL(IFC_URL);
+
+</script>
+
 </body>
 </html>
+```
