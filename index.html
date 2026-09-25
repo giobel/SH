@@ -142,68 +142,24 @@
     // SCENE
     // ------------------------------------------------------------
 
-    const sceneComponent =
-        new OBC.SimpleScene(components);
+    const worlds = components.get(OBC.Worlds);
+    const world = worlds.create();
 
-    components.scene = sceneComponent;
-
-    const scene = sceneComponent.get();
-
-    scene.background =
-        new THREE.Color(0x202020);
-
-
-    // ------------------------------------------------------------
-    // RENDERER
-    // ------------------------------------------------------------
-
-    const rendererComponent =
-        new OBC.SimpleRenderer(
-            components,
-            container
-        );
-
-    components.renderer =
-        rendererComponent;
-
-
-    // ------------------------------------------------------------
-    // CAMERA
-    // ------------------------------------------------------------
-
-    const cameraComponent =
-        new OBC.SimpleCamera(components);
-
-    components.camera =
-        cameraComponent;
-
-
-    // ------------------------------------------------------------
-    // LIGHTING
-    // ------------------------------------------------------------
-
-    const lighting =
-        new OBC.SimpleLighting(components);
-
-
-    // ------------------------------------------------------------
-    // INITIALISE
-    // ------------------------------------------------------------
+    world.scene = new OBC.SimpleScene(components);
+    world.renderer = new OBC.SimpleRenderer(components, container);
+    world.camera = new OBC.SimpleCamera(components);
 
     components.init();
-
-    lighting.setup();
+    world.scene.setup();
+    world.scene.three.background = new THREE.Color(0x202020);
 
 
     // ------------------------------------------------------------
     // IFC LOADER
     // ------------------------------------------------------------
 
-    const fragments =
-        new OBC.FragmentsManager(components);
-
-    const fragmentIfcLoader =
-        new OBC.IfcLoader(components);
+    const fragments = components.get(OBC.FragmentsManager);
+    const fragmentIfcLoader = components.get(OBC.IfcLoader);
 
 
     // ------------------------------------------------------------
@@ -260,11 +216,11 @@
 
 
             // Add model to scene
-            scene.add(model);
+            world.scene.three.add(model);
 
 
             // Fit camera
-            cameraComponent.fit(model);
+            world.camera.fitToItems();
 
 
             console.log(
@@ -333,9 +289,8 @@
                     );
 
 
-                scene.add(model);
-
-                cameraComponent.fit(model);
+                world.scene.three.add(model);
+                world.camera.fitToItems();
 
             }
             catch (error) {
