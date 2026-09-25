@@ -15,7 +15,7 @@
         body {
             font-family: Arial, sans-serif;
             overflow: hidden;
-            background: #202020;
+            background: #e3eef3;
         }
 
         #canvas-container {
@@ -26,57 +26,88 @@
         }
 
         #turntable-button {
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            border-radius: 6px;
-            padding: 10px 14px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
+            border: 0;
+            border-radius: 34px;
+            padding: 8px 20px;
+            color: #4b555b;
+            background: transparent;
             cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
         }
 
         #turntable-button:hover,
         #turntable-button[aria-pressed="true"] {
-            background: rgba(40, 110, 180, 0.9);
+            color: #16a9e5;
+            background: #eefaff;
+        }
+
+        #turntable-button::before {
+            content: "\21BB";
+            display: block;
+            margin-bottom: 2px;
+            font-size: 22px;
+            line-height: 20px;
         }
 
         #show-all-button {
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            border-radius: 6px;
-            padding: 10px 14px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
+            border: 0;
+            border-radius: 34px;
+            padding: 8px 20px;
+            color: #4b555b;
+            background: transparent;
             cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
         }
 
         #show-all-button:hover {
-            background: rgba(40, 110, 180, 0.9);
+            color: #16a9e5;
+            background: #eefaff;
+        }
+
+        #show-all-button::before {
+            content: "\21BA";
+            display: block;
+            margin-bottom: 2px;
+            font-size: 22px;
+            line-height: 20px;
         }
 
         #turntable-speed-control {
             display: flex;
             align-items: center;
             gap: 8px;
-            width: 250px;
+            width: 220px;
             height: 38px;
-            padding: 0 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
+            padding: 0 14px;
+            border-left: 1px solid #dce1e4;
+            color: #4b555b;
+            background: transparent;
         }
 
         #viewer-controls {
             position: absolute;
-            right: 20px;
-            bottom: 20px;
+            bottom: 0;
+            right: 0;
+            left: 0;
             z-index: 10;
             display: flex;
             align-items: center;
-            gap: 12px;
+            justify-content: center;
+            gap: 6px;
+            min-height: 74px;
+            padding: 10px 20px;
+            border-bottom: 1px solid #d9dfe2;
+            background: rgba(255, 255, 255, 0.97);
+            box-shadow: 0 -2px 8px rgba(39, 52, 59, 0.12);
         }
 
         #turntable-speed-label {
             flex: 0 0 auto;
+            font-weight: 600;
             font-size: 12px;
         }
 
@@ -88,7 +119,7 @@
 
         #loading-overlay {
             position: absolute;
-            top: 20px;
+            top: 94px;
             left: 50%;
             z-index: 10;
             width: min(320px, calc(100vw - 40px));
@@ -317,21 +348,21 @@
 
     components.init();
     world.scene.setup();
-    world.scene.three.background = new THREE.Color(0x202020);
+    world.scene.three.background = new THREE.Color(0xe3eef3);
 
     const renderer = world.renderer.three;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.95;
+    renderer.toneMappingExposure = 0.82;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     world.scene.three.add(
-        new THREE.HemisphereLight(0xe8f2ff, 0x40362e, 1.25)
+        new THREE.HemisphereLight(0xf8fcff, 0x9da9ae, 1.05)
     );
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.55);
     keyLight.position.set(12, 18, 14);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(4096, 4096);
@@ -346,7 +377,7 @@
     keyLight.shadow.camera.far = 120;
     world.scene.three.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xb9d6ff, 0.45);
+    const fillLight = new THREE.DirectionalLight(0xd8e9f5, 0.3);
     fillLight.position.set(-10, 8, -14);
     world.scene.three.add(fillLight);
 
@@ -487,6 +518,35 @@
                 );
 
             loadedModel = model;
+
+            model.traverse((object) => {
+                if (!object.isMesh || !object.material) {
+                    return;
+                }
+
+                const materials = Array.isArray(object.material)
+                    ? object.material
+                    : [object.material];
+
+                object.material = materials.map((material) => {
+                    const graphicMaterial = material.clone();
+                    const materialName = material.name.toLowerCase();
+
+                    if (!/glass|window|door|frame/.test(materialName)) {
+                        graphicMaterial.color?.lerp(new THREE.Color(0xffffff), 0.18);
+                        graphicMaterial.metalness = 0;
+                        graphicMaterial.roughness = 0.86;
+                    }
+
+                    graphicMaterial.needsUpdate = true;
+                    return graphicMaterial;
+                });
+
+                if (!Array.isArray(object.material)) {
+                    object.material = object.material[0];
+                }
+
+            });
 
             model.traverse((object) => {
                 if (!object.material) {
