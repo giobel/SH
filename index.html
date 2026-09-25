@@ -388,6 +388,14 @@
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
 
+    function hideRenderObject(object) {
+        object.visible = false;
+        object.traverse((child) => {
+            child.visible = false;
+        });
+        hiddenObjects.add(object);
+    }
+
     renderer.domElement.addEventListener("contextmenu", (event) => {
         event.preventDefault();
 
@@ -401,17 +409,20 @@
 
         raycaster.setFromCamera(pointer, world.camera.three);
         const intersections = raycaster.intersectObject(loadedModel, true);
-        const selectedObject = intersections[0]?.object;
+        const selectedObject = intersections.find((intersection) => {
+            return intersection.object.visible && intersection.object.isMesh;
+        })?.object;
 
         if (selectedObject) {
-            selectedObject.visible = false;
-            hiddenObjects.add(selectedObject);
+            hideRenderObject(selectedObject);
         }
     });
 
     showAllButton.addEventListener("click", () => {
         for (const object of hiddenObjects) {
-            object.visible = true;
+            object.traverse((child) => {
+                child.visible = true;
+            });
         }
 
         hiddenObjects.clear();
