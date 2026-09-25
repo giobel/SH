@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,71 +24,22 @@
             width: 100vw;
             height: 100vh;
         }
-
-        #controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.80);
-            padding: 15px;
-            border-radius: 8px;
-            color: white;
-            min-width: 260px;
-        }
-
-        #controls h2 {
-            margin-bottom: 8px;
-        }
-
-        #loading {
-            margin-top: 10px;
-            color: #ffeb3b;
-            font-weight: bold;
-        }
-
-        #error {
-            margin-top: 10px;
-            color: #ff5555;
-            display: none;
-        }
-
-        input[type="file"] {
-            margin-top: 10px;
-            color: #ccc;
-            width: 100%;
-        }
     </style>
 
     <!-- Import maps -->
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.module.js",
-            "@thatopen/components": "https://cdn.jsdelivr.net/npm/@thatopen/components@2.4.0/+esm",
-            "@thatopen/fragments": "https://cdn.jsdelivr.net/npm/@thatopen/fragments@3.1.0/+esm"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+            "@thatopen/components": "https://unpkg.com/@thatopen/components@2.4.0/dist/index.mjs",
+            "@thatopen/fragments": "https://unpkg.com/@thatopen/fragments@2.4.0/dist/index.mjs",
+            "web-ifc": "https://unpkg.com/web-ifc@0.0.68/web-ifc-api.js"
         }
     }
     </script>
 </head>
 
 <body>
-
-<div id="controls">
-    <h2>IFC Viewer</h2>
-
-    <div id="loading">
-        Loading IFC model...
-    </div>
-
-    <input
-        type="file"
-        id="ifc-file"
-        accept=".ifc"
-    >
-
-    <div id="error"></div>
-</div>
 
 <div id="canvas-container"></div>
 
@@ -120,16 +70,6 @@
 
     const container =
         document.getElementById("canvas-container");
-
-    const fileInput =
-        document.getElementById("ifc-file");
-
-    const loadingIndicator =
-        document.getElementById("loading");
-
-    const errorElement =
-        document.getElementById("error");
-
 
     // ------------------------------------------------------------
     // COMPONENTS
@@ -167,8 +107,9 @@
     // ------------------------------------------------------------
 
     await fragmentIfcLoader.setup({
+        autoSetWasm: false,
         wasm: {
-            path: "https://cdn.jsdelivr.net/npm/web-ifc@0.0.68/",
+            path: "https://unpkg.com/web-ifc@0.0.68/",
             absolute: true
         }
     });
@@ -179,10 +120,6 @@
     // ------------------------------------------------------------
 
     async function loadIFCFromURL(url) {
-
-        loadingIndicator.style.display = "block";
-        errorElement.style.display = "none";
-
         try {
 
             console.log("Loading IFC:");
@@ -220,7 +157,7 @@
 
 
             // Fit camera
-            world.camera.fitToItems();
+            await world.camera.controls.fitToBox(model);
 
 
             console.log(
@@ -235,83 +172,12 @@
                 error
             );
 
-            errorElement.innerText =
-                "Unable to load IFC model: " +
-                error.message;
-
-            errorElement.style.display =
-                "block";
-        }
-
-        finally {
-
-            loadingIndicator.style.display =
-                "none";
+            console.error(
+                "Unable to load IFC model:",
+                error.message
+            );
         }
     }
-
-
-    // ------------------------------------------------------------
-    // LOCAL IFC FILE
-    // ------------------------------------------------------------
-
-    fileInput.addEventListener(
-        "change",
-        async (event) => {
-
-            const file =
-                event.target.files[0];
-
-            if (!file)
-                return;
-
-            loadingIndicator.style.display =
-                "block";
-
-            errorElement.style.display =
-                "none";
-
-            try {
-
-                const buffer =
-                    await file.arrayBuffer();
-
-                const uint8Array =
-                    new Uint8Array(buffer);
-
-
-                fragments.dispose();
-
-
-                const model =
-                    await fragmentIfcLoader.load(
-                        uint8Array
-                    );
-
-
-                world.scene.three.add(model);
-                world.camera.fitToItems();
-
-            }
-            catch (error) {
-
-                console.error(error);
-
-                errorElement.innerText =
-                    "Unable to load IFC model: " +
-                    error.message;
-
-                errorElement.style.display =
-                    "block";
-            }
-
-            finally {
-
-                loadingIndicator.style.display =
-                    "none";
-            }
-        }
-    );
 
 
     // ------------------------------------------------------------
@@ -324,4 +190,3 @@
 
 </body>
 </html>
-```

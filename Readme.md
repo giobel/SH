@@ -1,0 +1,1 @@
+npx.cmd serve . -l 8000
