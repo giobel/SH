@@ -68,6 +68,84 @@
             background: #eefaff;
         }
 
+        #section-button {
+            border: 0;
+            border-radius: 34px;
+            padding: 8px 20px;
+            color: #4b555b;
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        #section-button:hover,
+        #section-button[aria-pressed="true"] {
+            color: #16a9e5;
+            background: #eefaff;
+        }
+
+        .plane-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 34px;
+            padding: 8px 14px;
+            color: #4b555b;
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .plane-button small {
+            margin-top: 2px;
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .plane-button:hover {
+            color: #16a9e5;
+            background: #eefaff;
+        }
+
+        #section-plane-tools {
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #flip-plane-button {
+            border: 0;
+            border-radius: 34px;
+            padding: 8px 14px;
+            color: #4b555b;
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        #flip-plane-button:hover {
+            color: #16a9e5;
+            background: #eefaff;
+        }
+
+        #section-button::before {
+            content: "\25A4";
+            display: block;
+            margin-bottom: 2px;
+            font-size: 22px;
+            line-height: 20px;
+        }
+
         #show-all-button::before {
             content: "";
             display: block;
@@ -187,6 +265,26 @@
     <button id="show-all-button" type="button">
         Show all elements
     </button>
+    <button id="section-button" type="button" aria-pressed="false">
+        Section plane
+    </button>
+    <div id="section-plane-tools">
+        <button class="plane-button" id="xy-plane-button" type="button">
+            <span>XY</span>
+            <small>Section</small>
+        </button>
+        <button class="plane-button" id="yz-plane-button" type="button">
+            <span>YZ</span>
+            <small>Section</small>
+        </button>
+        <button class="plane-button" id="zx-plane-button" type="button">
+            <span>ZX</span>
+            <small>Section</small>
+        </button>
+        <button id="flip-plane-button" type="button">
+            Flip plane
+        </button>
+    </div>
     <button id="turntable-button" type="button" aria-pressed="false">
         Start turntable
     </button>
@@ -241,6 +339,21 @@
 
     const showAllButton =
         document.getElementById("show-all-button");
+
+    const sectionButton =
+        document.getElementById("section-button");
+
+    const sectionPlaneTools =
+        document.getElementById("section-plane-tools");
+
+    const planeButtons = [
+        [document.getElementById("xy-plane-button"), new THREE.Vector3(0, 0, 1)],
+        [document.getElementById("yz-plane-button"), new THREE.Vector3(1, 0, 0)],
+        [document.getElementById("zx-plane-button"), new THREE.Vector3(0, 1, 0)]
+    ];
+
+    const flipPlaneButton =
+        document.getElementById("flip-plane-button");
 
     const turntableSpeed =
         document.getElementById("turntable-speed");
@@ -298,6 +411,9 @@
     let turntableRotationSpeed = Number(turntableSpeed.value);
     const hiddenObjects = new Set();
     let loadedModel = null;
+    let planeDirection = 1;
+    let activePlaneNormal = null;
+    let activePlanePoint = null;
 
     function animateTurntable() {
         if (turntableActive) {
@@ -428,6 +544,50 @@
         hiddenObjects.clear();
     });
 
+    function createStandardPlane(normal) {
+        if (!loadedModel) {
+            return;
+        }
+
+        const modelBounds = new THREE.Box3().setFromObject(loadedModel);
+        const modelCenter = modelBounds.getCenter(new THREE.Vector3());
+
+        clipper.deleteAll();
+        showSectionMode();
+        const directedNormal = normal.clone().multiplyScalar(planeDirection);
+        clipper.createFromNormalAndCoplanarPoint(
+            world,
+            directedNormal,
+            modelCenter
+        );
+
+        activePlaneNormal = directedNormal;
+        activePlanePoint = modelCenter;
+    }
+
+    for (const [button, normal] of planeButtons) {
+        button.addEventListener("click", () => {
+            createStandardPlane(normal);
+        });
+    }
+
+    flipPlaneButton.addEventListener("click", () => {
+        planeDirection *= -1;
+
+        if (!activePlaneNormal || !activePlanePoint) {
+            return;
+        }
+
+        const flippedNormal = activePlaneNormal.clone().multiplyScalar(-1);
+        clipper.deleteAll();
+        clipper.createFromNormalAndCoplanarPoint(
+            world,
+            flippedNormal,
+            activePlanePoint
+        );
+        activePlaneNormal = flippedNormal;
+    });
+
     animateTurntable();
 
 
@@ -437,6 +597,64 @@
 
     const fragments = components.get(OBC.FragmentsManager);
     const fragmentIfcLoader = components.get(OBC.IfcLoader);
+    const clipper = components.get(OBC.Clipper);
+
+    clipper.visible = true;
+    clipper.enabled = false;
+    clipper.autoScalePlanes = false;
+    clipper.size = 10;
+
+    function exitSectionMode() {
+        clipper.enabled = false;
+        clipper.deleteAll();
+        sectionButton.setAttribute("aria-pressed", "false");
+        sectionButton.textContent = "Section plane";
+        sectionPlaneTools.style.display = "none";
+        activePlaneNormal = null;
+        activePlanePoint = null;
+    }
+
+    function showSectionMode() {
+        clipper.enabled = true;
+        sectionButton.setAttribute("aria-pressed", "true");
+        sectionButton.textContent = "Exit section";
+        sectionPlaneTools.style.display = "flex";
+    }
+
+    sectionButton.addEventListener("click", () => {
+        if (clipper.enabled) {
+            exitSectionMode();
+        } else {
+            showSectionMode();
+        }
+    });
+
+    renderer.domElement.addEventListener("dblclick", (event) => {
+        if (!clipper.enabled || !loadedModel) {
+            return;
+        }
+
+        const bounds = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+        pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+
+        raycaster.setFromCamera(pointer, world.camera.three);
+        const intersection = raycaster.intersectObject(loadedModel, true)[0];
+
+        if (!intersection) {
+            return;
+        }
+
+        const planeNormal = new THREE.Vector3();
+        world.camera.three.getWorldDirection(planeNormal);
+        clipper.createFromNormalAndCoplanarPoint(
+            world,
+            planeNormal,
+            intersection.point
+        );
+        activePlaneNormal = planeNormal.clone();
+        activePlanePoint = intersection.point.clone();
+    });
 
 
     // ------------------------------------------------------------
