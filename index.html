@@ -69,11 +69,15 @@
         }
 
         #show-all-button::before {
-            content: "\21BA";
+            content: "";
             display: block;
-            margin-bottom: 2px;
-            font-size: 22px;
-            line-height: 20px;
+            width: 20px;
+            height: 12px;
+            margin: 2px auto 8px;
+            border: 2px solid currentColor;
+            border-radius: 70% 15%;
+            transform: rotate(45deg);
+            background: radial-gradient(circle, currentColor 0 3px, transparent 3.5px);
         }
 
         #turntable-speed-control {
