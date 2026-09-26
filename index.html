@@ -68,6 +68,23 @@
             background: #eefaff;
         }
 
+        #open-ifc-button {
+            border: 0;
+            border-radius: 34px;
+            padding: 8px 20px;
+            color: #4b555b;
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        #open-ifc-button:hover {
+            color: #16a9e5;
+            background: #eefaff;
+        }
+
         #section-button {
             border: 0;
             border-radius: 34px;
@@ -262,6 +279,10 @@
 
 <div id="canvas-container"></div>
 <div id="viewer-controls">
+    <button id="open-ifc-button" type="button">
+        Open IFC file
+    </button>
+    <input id="open-ifc-file" type="file" accept=".ifc,.ifcxml,.ifcZIP" hidden>
     <button id="show-all-button" type="button">
         Show all elements
     </button>
@@ -339,6 +360,12 @@
 
     const showAllButton =
         document.getElementById("show-all-button");
+
+    const openIfcButton =
+        document.getElementById("open-ifc-button");
+
+    const openIfcFileInput =
+        document.getElementById("open-ifc-file");
 
     const sectionButton =
         document.getElementById("section-button");
@@ -542,6 +569,33 @@
         }
 
         hiddenObjects.clear();
+    });
+
+    openIfcButton.addEventListener("click", () => {
+        openIfcFileInput.click();
+    });
+
+    openIfcFileInput.addEventListener("change", async () => {
+        const file = openIfcFileInput.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+
+        loadingOverlay.style.display = "block";
+        loadingProgress.classList.remove("indeterminate");
+        loadingProgress.style.background = "";
+        loadingProgress.style.width = "0%";
+        loadingLabel.textContent = "Loading model...";
+
+        try {
+            await loadIFCFromURL(objectUrl);
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+            openIfcFileInput.value = "";
+        }
     });
 
     function createStandardPlane(normal) {
