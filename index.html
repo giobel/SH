@@ -13,16 +13,58 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            background: #e3eef3;
+            font-family: "Segoe UI", Arial, sans-serif;
+            overflow: auto;
+            background: #f5efe8;
+            color: #2c2f32;
+        }
+
+        #page-shell {
+            position: relative;
+            width: min(1200px, calc(100vw - 32px));
+            margin: 40px auto 72px;
+            padding: 0 0 22px;
+            border: 1px solid #e8dfd5;
+            border-radius: 26px;
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: 0 24px 56px rgba(48, 43, 35, 0.09);
+        }
+
+        #header {
+            padding: 42px 48px 18px;
+        }
+
+        #header-inner {
+            max-width: 760px;
+        }
+
+        #project-title {
+            margin: 0 0 10px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2.4rem, 4vw, 4.1rem);
+            line-height: 0.96;
+            letter-spacing: -0.04em;
+            color: #1f2326;
+            font-weight: 600;
+        }
+
+        #project-intro {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #4e5a62;
+            max-width: 640px;
         }
 
         #canvas-container {
-            position: absolute;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
+            position: relative;
+            width: calc(100% - 32px);
+            height: min(68vh, 720px);
+            margin: 0 16px;
+            overflow: hidden;
+            border: 1px solid #e9e2d9;
+            border-radius: 22px;
+            background: #dfeaf0;
         }
 
         #turntable-button {
@@ -188,20 +230,17 @@
         }
 
         #viewer-controls {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            left: 0;
+            position: relative;
             z-index: 10;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
             min-height: 74px;
-            padding: 10px 20px;
-            border-bottom: 1px solid #d9dfe2;
-            background: rgba(255, 255, 255, 0.97);
-            box-shadow: 0 -2px 8px rgba(39, 52, 59, 0.12);
+            padding: 12px 18px 10px;
+            border-top: 1px solid #e7e0d7;
+            background: #faf7f3;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
         #turntable-speed-label {
@@ -218,16 +257,25 @@
 
         #loading-overlay {
             position: absolute;
-            top: 94px;
+            top: 18px;
             left: 50%;
             z-index: 10;
-            width: min(320px, calc(100vw - 40px));
+            width: min(320px, calc(100% - 40px));
             padding: 12px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 6px;
             color: white;
             background: rgba(0, 0, 0, 0.7);
             transform: translateX(-50%);
+        }
+
+        #description {
+            max-width: 720px;
+            margin: 30px 48px 0;
+            padding: 0 0 8px;
+            color: #3d4e57;
+            line-height: 1.8;
+            font-size: 1.02rem;
         }
 
         #loading-label {
@@ -277,8 +325,24 @@
 
 <body>
 
-<div id="canvas-container"></div>
-<div id="viewer-controls">
+<div id="page-shell">
+    <header id="header">
+        <div id="header-inner">
+            <h1 id="project-title">Shed House IFC Model</h1>
+            <p id="project-intro">Interactive review of the architectural model with sectioning, turntable motion, and local IFC file loading.</p>
+        </div>
+    </header>
+
+    <div id="canvas-container">
+        <div id="loading-overlay" role="status" aria-live="polite">
+            <span id="loading-label">Loading model...</span>
+            <div id="loading-track">
+                <div id="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewer-controls">
     <button id="open-ifc-button" type="button">
         Open IFC file
     </button>
@@ -313,11 +377,10 @@
         <span id="turntable-speed-label">Turntable speed: 1.0x</span>
         <input id="turntable-speed" type="range" min="0.1" max="1" step="0.1" value="1">
     </label>
-</div>
-<div id="loading-overlay" role="status" aria-live="polite">
-    <span id="loading-label">Loading model...</span>
-    <div id="loading-track">
-        <div id="loading-progress"></div>
+    </div>
+
+    <div id="description">
+        This model showcases the shed house geometry in a browser-based IFC viewer. Use the controls to inspect the structure, apply section planes, or open a different IFC file from your computer for comparison.
     </div>
 </div>
 
